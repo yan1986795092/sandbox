@@ -1,6 +1,7 @@
 package com.codesandbox.controller;
 
-import com.codesandbox.JavaNativeCodeSandbox;
+import com.codesandbox.CodeSandbox;
+import com.codesandbox.CodeSandboxFactory;
 import com.codesandbox.model.ExecuteCodeRequest;
 import com.codesandbox.model.ExecuteCodeResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,7 +22,8 @@ public class MainController {
     private static final String AUTH_REQUEST_SECRET = "secretKey";
 
     @Resource
-    private JavaNativeCodeSandbox javaNativeCodeSandbox;
+    private CodeSandboxFactory codeSandboxFactory;
+
 
     @GetMapping("/health")
     public String healthCheck() {
@@ -43,9 +45,22 @@ public class MainController {
             response.setStatus(403);
             return null;
         }
+
         if (executeCodeRequest == null) {
             throw new RuntimeException("请求参数为空");
         }
-        return javaNativeCodeSandbox.executeCode(executeCodeRequest);
+
+        CodeSandbox codeSandbox = null; // 初始化为 null
+
+        try {
+            // 根据语言选择相应的沙箱
+            codeSandbox = codeSandboxFactory.createSandbox(executeCodeRequest.getLanguage());
+        } catch (IllegalArgumentException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+        }
+
+        // 执行代码并返回结果
+        return codeSandbox.executeCode(executeCodeRequest);
+
     }
 }
